@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Cadastro de Materiais de Manutenção</title>
+    <style>
+        /* Estilização básica para a página */
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('background.png'); /* Adiciona fundo com imagem PNG */
+            background-size: cover;
+            color: #000;
+            text-align: center; /* Centraliza o texto */
+        }
+
+        .container {
+            width: 80%;
+            margin: auto;
+            background-color: rgba(255, 255, 255, 0.8); /* Fundo branco semi-transparente */
+            border-radius: 10px; /* Bordas arredondadas */
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* Sombra */
+            position: relative;
+        }
+
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 10px; /* Bordas arredondadas */
+            background-color: #96573D; /* Cor do botão */
+            color: #fff;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+
+        input[type="text"], input[type="number"], input[type="search"], input[type="date"], select {
+            width: 100%; /* Aumenta o tamanho das caixas de texto */
+            padding: 15px;
+            font-size: 16px;
+            margin: 10px 0;
+            color: black; /* Texto preto */
+            border: 2px solid #96573D; /* Borda arredondada com cor específica */
+            border-radius: 10px; /* Bordas arredondadas */
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2); /* Sombra leve */
+            display: block; /* Alinha ao centro */
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button {
+            width: 18px; /* Aumenta o tamanho dos botões de incremento e decremento */
+            height: 18px;
+        }
+
+        /* Novo CSS para estilizar as caixas de texto */
+        .form {
+            --width-of-input: 400px; /* Aumenta o tamanho das caixas de texto */
+            --border-height: 1px;
+            --border-before-color: rgba(221, 221, 221, 0.39);
+            --border-after-color: #96573D;
+            --input-hovered-color: #4985e01f;
+            position: relative;
+            width: var(--width-of-input);
+            margin-left: auto;
+            margin-right: auto; /* Centraliza o formulário */
+        }
+        .input {
+            color: black; /* Texto preto */
+            font-size: 1.2rem; /* Aumenta o tamanho do texto */
+            background-color: transparent;
+            width: 100%;
+            box-sizing: border-box;
+            padding-inline: 0.5em;
+            padding-block: 0.7em;
+            border: none;
+            border-bottom: var(--border-height) solid var(--border-before-color);
+            border-radius: 10px; /* Bordas arredondadas */
+        }
+        .input-border {
+            position: absolute;
+            background: var(--border-after-color);
+            width: 0%;
+            height: 2px;
+            bottom: 0;
+            left: 0;
+            transition: 0.3s;
+        }
+        input:hover {
+            background: var(--input-hovered-color);
+        }
+        
+        input:focus {
+            outline: none;
+        }
+        input:focus ~ .input-border {
+            width: 100%;
+        }
+
+        /* Logo no canto inferior esquerdo */
+        #logo {
+            position: fixed;
+            bottom: 800px;
+            left: 1500px;
+            width: 120px; /* Ajuste o tamanho conforme necessário */
+        }
+
+        /* Estilos de cores para as linhas da tabela */
+        .low-quantity {
+            background-color: #ffcccc; /* Vermelho claro para quantidade negativa a 2 */
+        }
+        .medium-quantity {
+            background-color: #ffff99; /* Amarelo para quantidade de 3 a 5 */
+        }
+        .high-quantity {
+            background-color: #ccffcc; /* Verde claro para quantidade maior que 5 */
+        }
+    </style>
+    <!-- Inclusão da biblioteca SheetJS para manipulação de arquivos Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Sistema de Cadastro de Materiais de Manutenção</h1>
+        <!-- Botões para adicionar material, visualizar lista e importar/exportar tabela -->
+        <button onclick="showForm()">Adicionar Material</button>
+        <button onclick="showList()">Ver Lista de Materiais</button>
+        <button onclick="exportTable()">Exportar Tabela</button>
+        <input type="file" id="importFile" style="display:none" onchange="importTable(event)">
+        <button onclick="document.getElementById('importFile').click()">Importar Tabela</button>
+        <button onclick="exportUserHistory()">Histórico do Usuário</button>
+        
+        <!-- Seção do formulário de cadastro de material -->
+        <div id="formSection" class="hidden">
+            <h2>Cadastro de Material</h2>
+            <form id="materialForm" class="form">
+                <label for="localizacao">Localização:</label>
+                <div class="form">
+                    <input type="text" id="localizacao" name="localizacao" class="input" required>
+                    <div class="input-border"></div>
+                </div>
+
+                <label for="codigo">Código:</label>
+                <div class="form">
+                    <input type="text" id="codigo" name="codigo" class="input" required>
+                    <div class="input-border"></div>
+                </div>
+
+                <label for="descricao">Descrição:</label>
+                <div class="form">
+                    <input type="text" id="descricao" name="descricao" class="input" required>
+                    <div class="input-border"></div>
+                </div>
+
+                <label for="fornecedor">Fornecedor:</label>
+                <div class="form">
+                    <input type="text" id="fornecedor" name="fornecedor" class="input" required>
+                    <div class="input-border"></div>
+                </div>
+
+                <label for="quantidade">Quantidade:</label>
+                <div class="form">
+                    <input type="number" id="quantidade" name="quantidade" class="input" required>
+                    <div class="input-border"></div>
+                </div>
+
+                <button type="button" onclick="addMaterial()">Cadastrar</button>
+            </form>
+        </div>
+        
+        <!-- Seção da lista de materiais -->
+        <div id="listSection" class="hidden">
+            <h2>Lista de Materiais</h2>
+            <!-- Barra de pesquisa -->
+            <input type="search" id="searchBar" placeholder="Pesquisar por Descrição" class="input" oninput="filterTable()">
+            <div class="input-border"></div>
+            <table id="materialTable">
+                <thead>
+                    <tr>
+                        <th>Localização</th>
+                        <th>Código</th>
+                        <th>Descrição</th>
+                        <th>Fornecedor</th>
+                        <th>Quantidade</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Os materiais cadastrados aparecerão aqui -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Pop-up de Identificação do Usuário -->
+    <div id="userPopup" class="container">
+        <h2>Identificação do Usuário</h2>
+        <form id="userForm">
+            <label for="userName">Nome:</label>
+            <div class="form">
+                <select id="userName" class="input" required>
+                    <option value="">Selecione um nome</option>
+                    <option value="Angélica">Angélica</option>
+                    <option value="Carlos">Carlos</option>
+                    <option value="Fábio">Fábio</option>
+                    <option value="Luiz">Luiz</option>
+                    <option value="Mateus">Mateus</option>
+                    <option value="Terek">Terek</option>
+                </select>
+                <div class="input-border"></div>
+            </div>
+
+            <label for="userDate">Data:</label>
+            <div class="form">
+                <input type="date" id="userDate" class="input" required>
+                <div class="input-border"></div>
+            </div>
+
+            <button type="button" onclick="saveUserInfo()">Confirmar</button>
+        </form>
+    </div>
+
+    <!-- Exibição do logotipo da empresa -->
+    <img src="logo.png" alt="Logo da Empresa" id="logo">
+    
+    <script>
+        // Mostra o formulário de adição de material e esconde a lista
+        function showForm() {
+            document.getElementById('formSection').classList.remove('hidden');
+            document.getElementById('listSection').classList.add('hidden');
+        }
+
+        // Mostra a lista de materiais e esconde o formulário de adição
+        function showList() {
+            document.getElementById('formSection').classList.add('hidden');
+            document.getElementById('listSection').classList.remove('hidden');
+            loadMaterials();
+        }
+
+        // Exibe o pop-up de identificação do usuário ao carregar a página
+        window.onload = function() {
+            document.getElementById('userPopup').style.display = 'block';
+        }
+
+        // Salva as informações do usuário e fecha o pop-up
+        function saveUserInfo() {
+            const userName = document.getElementById('userName').value;
+            const userDate = document.getElementById('userDate').value;
+            if (userName && userDate) {
+                localStorage.setItem('userName', userName);
+                localStorage.setItem('userDate', userDate);
+                document.getElementById('userPopup').style.display = 'none';
+            } else {
+                alert('Por favor, preencha todos os campos.');
+            }
+        }
+
+        // Adiciona um novo material à lista e salva no localStorage
+        function addMaterial() {
+            const localizacao = document.getElementById('localizacao').value;
+            const codigo = document.getElementById('codigo').value;
+            const descricao = document.getElementById('descricao').value;
+            const fornecedor = document.getElementById('fornecedor').value;
+            const quantidade = document.getElementById('quantidade').value;
+
+            const material = {
+                localizacao,
+                codigo,
+                descricao,
+                fornecedor,
+                quantidade
+            };
+
+            const materials = JSON.parse(localStorage.getItem('materials')) || [];
+            materials.push(material);
+            localStorage.setItem('materials', JSON.stringify(materials));
+            saveUserAction('add', material);
+            alert('Material cadastrado com sucesso!');
+            document.getElementById('materialForm').reset();
+        }
+
+        // Carrega os materiais do localStorage e exibe na tabela
+        function loadMaterials() {
+            const materials = JSON.parse(localStorage.getItem('materials')) || [];
+            const tbody = document.querySelector('#materialTable tbody');
+            tbody.innerHTML = '';
+
+            materials.forEach((material, index) => {
+                const row = document.createElement('tr');
+
+                row.className = getRowClass(material.quantidade);
+
+                row.innerHTML = `
+                    <td>${material.localizacao}</td>
+                    <td>${material.codigo}</td>
+                    <td>${material.descricao}</td>
+                    <td>${material.fornecedor}</td>
+                    <td>${material.quantidade}</td>
+                    <td>
+                        <button onclick="editMaterial(${index})">Editar</button>
+                        <button onclick="deleteMaterial(${index})">Excluir</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Define a cor de fundo das linhas da tabela com base na quantidade
+        function getRowClass(quantidade) {
+            if (quantidade < 3) {
+                return 'low-quantity';
+            } else if (quantidade <= 5) {
+                return 'medium-quantity';
+            } else {
+                return 'high-quantity';
+            }
+        }
+
+        // Filtra a tabela com base na pesquisa do usuário
+        function filterTable() {
+            const searchTerm = document.getElementById('searchBar').value.toLowerCase();
+            const rows = document.querySelectorAll('#materialTable tbody tr');
+
+            rows.forEach(row => {
+                const descricao = row.cells[2].textContent.toLowerCase();
+                row.style.display = descricao.includes(searchTerm) ? '' : 'none';
+            });
+        }
+
+        // Função para editar um material existente
+        function editMaterial(index) {
+            const materials = JSON.parse(localStorage.getItem('materials')) || [];
+            const material = materials[index];
+
+            const newLocalizacao = prompt('Nova localização:', material.localizacao);
+            const newCodigo = prompt('Novo código:', material.codigo);
+            const newDescricao = prompt('Nova descrição:', material.descricao);
+            const newFornecedor = prompt('Novo fornecedor:', material.fornecedor);
+            const newQuantidade = prompt('Nova quantidade:', material.quantidade);
+
+            if (newLocalizacao && newCodigo && newDescricao && newFornecedor && newQuantidade) {
+                materials[index] = {
+                    localizacao: newLocalizacao,
+                    codigo: newCodigo,
+                    descricao: newDescricao,
+                    fornecedor: newFornecedor,
+                    quantidade: parseInt(newQuantidade)
+                };
+                localStorage.setItem('materials', JSON.stringify(materials));
+                saveUserAction('edit', materials[index]);
+                loadMaterials();
+            }
+        }
+
+        // Função para excluir um material da lista
+        function deleteMaterial(index) {
+            const materials = JSON.parse(localStorage.getItem('materials')) || [];
+            const deletedMaterial = materials.splice(index, 1);
+            localStorage.setItem('materials', JSON.stringify(materials));
+            saveUserAction('delete', deletedMaterial[0]);
+            loadMaterials();
+        }
+
+        // Função para exportar a tabela como arquivo Excel
+        function exportTable() {
+            const table = document.getElementById('materialTable');
+            const workbook = XLSX.utils.table_to_book(table);
+            XLSX.writeFile(workbook, 'materiais.xlsx');
+        }
+
+        // Função para importar a tabela a partir de um arquivo Excel
+        function importTable(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                const materials = json.slice(1).map(row => ({
+                    localizacao: row[0],
+                    codigo: row[1],
+                    descricao: row[2],
+                    fornecedor: row[3],
+                    quantidade: row[4]
+                }));
+
+                localStorage.setItem('materials', JSON.stringify(materials));
+                loadMaterials();
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Função para salvar ações do usuário no histórico
+        function saveUserAction(action, material) {
+            const userName = localStorage.getItem('userName');
+            const userDate = localStorage.getItem('userDate');
+            const history = JSON.parse(localStorage.getItem('userHistory')) || [];
+
+            const entry = {
+                action,
+                material,
+                userName,
+                userDate,
+                timestamp: new Date().toLocaleString()
+            };
+
+            history.push(entry);
+            localStorage.setItem('userHistory', JSON.stringify(history));
+        }
+
+        // Função para exportar o histórico de ações do usuário como arquivo Excel
+        function exportUserHistory() {
+            const history = JSON.parse(localStorage.getItem('userHistory')) || [];
+            const worksheet = XLSX.utils.json_to_sheet(history);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Histórico');
+            XLSX.writeFile(workbook, 'historico_usuarios.xlsx');
+        }
+    </script>
+</body>
+</html>
